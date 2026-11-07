@@ -97,7 +97,7 @@ export function validateEnv(config: Record<string, unknown>): Record<string, unk
     FRONTEND_URL: config.FRONTEND_URL ?? 'http://localhost:3000',
     BETTER_AUTH_URL: config.BETTER_AUTH_URL ?? 'http://localhost:4000',
     UPLOAD_DIR: config.UPLOAD_DIR ?? 'uploads',
-    MAX_FILE_SIZE: config.MAX_FILE_SIZE ?? '5242880',
+    MAX_FILE_SIZE: config.MAX_FILE_SIZE ?? (config.VERCEL ? '4194304' : '5242880'),
   };
 
   // Empty optional numeric values should be treated as unset.

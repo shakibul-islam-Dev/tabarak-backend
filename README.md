@@ -102,7 +102,7 @@ sample coupons (`WELCOME10`, `FREESHIP`) and public site settings.
 | `UPLOAD_DRIVER` | No | `local` (default) or `vercel-blob` |
 | `UPLOAD_DIR` | No | Local upload directory, default `uploads` (or `/tmp/tabarak-uploads` on Vercel) |
 | `BLOB_READ_WRITE_TOKEN` | No | Vercel Blob token; injected automatically by Vercel |
-| `MAX_FILE_SIZE` | No | Upload size limit in bytes, default 5 MB |
+| `MAX_FILE_SIZE` | No | Upload size limit in bytes; default 5 MB locally and 4 MB on Vercel |
 | `SEED_ADMIN_EMAIL` | No | Seeded admin email |
 | `SEED_ADMIN_PASSWORD` | No | Seeded admin password |
 | `SEED_ADMIN_NAME` | No | Seeded admin display name |
@@ -328,6 +328,11 @@ must only change after a real, verified payment integration is added.
 have a read-only filesystem apart from the ephemeral `/tmp`, so durable uploads
 on Vercel require a connected Blob store and `UPLOAD_DRIVER=vercel-blob`.
 
+Vercel also caps every request body at **4.5 MB**, which applies to the combined
+size of all files in a multipart request. The default limit is therefore 4 MB on
+Vercel; larger images must be compressed before upload or sent directly to Blob
+storage.
+
 ## Scripts
 
 | Script | Purpose |
@@ -407,22 +412,25 @@ generates Prisma Client (with the Amazon Linux engine) before compiling.
    ```
 
    Optional: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`,
-   `EMAIL_FROM`, `MAX_FILE_SIZE`.
+   `EMAIL_FROM`, `MAX_FILE_SIZE` (keep at or below `4194304` bytes because of
+   the 4.5 MB request limit).
 4. **Create a Vercel Blob store** (Project → Storage → Blob) and connect it to
    the project. Vercel injects `BLOB_READ_WRITE_TOKEN`; with the token present
    the app automatically uses `UPLOAD_DRIVER=vercel-blob`, so product images
    survive cold starts. Without Blob, uploads fall back to `/tmp` and are
    temporary.
-5. **Apply migrations before the first request.** From a machine with the
-   production `DATABASE_URL`:
+5. **Apply migrations before the first request.** Run migrations with the
+   **direct** (non-pooled) database URL, and use the pooled URL only for the
+   application runtime:
 
    ```bash
-   DATABASE_URL="postgresql://...pooled..." pnpm prisma:deploy
-   DATABASE_URL="postgresql://...pooled..." pnpm db:seed   # first deploy only
+   DATABASE_URL="postgresql://...direct..." pnpm prisma:deploy
+   DATABASE_URL="postgresql://...direct..." pnpm db:seed   # first deploy only
    ```
 
-   Keep migrations out of the build step so preview deployments cannot mutate
-   the production database unexpectedly.
+   For Supabase, this is the `db.<project>.supabase.co:5432` host; for Neon, the
+   host without the `-pooler` suffix. Keep migrations out of the build step so
+   preview deployments cannot mutate the production database unexpectedly.
 6. **Deploy** with `pnpm dlx vercel --prod`, or push to the connected Git
    branch. Verify:
 
@@ -441,8 +449,13 @@ Notes specific to serverless:
   are not available. Use Vercel Cron Jobs for scheduled HTTP endpoints.
 - Keep the function bundle below 250 MB. `prisma generate` only ships the
   engines listed in `binaryTargets`.
-- Set the production domain (not a preview URL) as `BETTER_AUTH_URL`; previews
-  can use their own `VERCEL_URL` only when `BETTER_AUTH_URL` is unset.
+- Set the production domain as `BETTER_AUTH_URL`. When it is unset, the app
+  falls back to Vercel's project production URL, then the deployment URL.
+  Vercel preview and branch hosts are added to the trusted origins
+  automatically, but the storefront still needs to be listed in
+  `FRONTEND_URL`/`TRUSTED_ORIGINS`.
+- The 4.5 MB request-body limit also caps multipart uploads. See
+  [Uploads](#uploads) before raising `MAX_FILE_SIZE`.
 
 
 ## Project structure

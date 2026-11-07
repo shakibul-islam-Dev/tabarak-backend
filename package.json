@@ -4,6 +4,7 @@
   "description": "tabarak e-commerce backend API",
   "private": true,
   "license": "UNLICENSED",
+  "packageManager": "pnpm@12.18.0",
   "scripts": {
     "build": "nest build",
     "vercel-build": "prisma generate && nest build",

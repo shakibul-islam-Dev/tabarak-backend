@@ -44,6 +44,23 @@ const splitCsv = (value: string | undefined): string[] =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '');
+
+/**
+ * Vercel exposes the deployment hosts without a protocol. They are added to
+ * the trusted origins so preview deployments can use the API and Better Auth
+ * cookies without extra configuration.
+ */
+const vercelOrigins = (env: NodeJS.ProcessEnv): string[] =>
+  [env.VERCEL_URL, env.VERCEL_BRANCH_URL, env.VERCEL_PROJECT_PRODUCTION_URL]
+    .filter((host): host is string => Boolean(host))
+    .map((host) => (host.startsWith('http') ? host : `https://${host}`));
+
+const vercelBaseUrl = (env: NodeJS.ProcessEnv): string | undefined => {
+  const host = env.VERCEL_PROJECT_PRODUCTION_URL ?? env.VERCEL_URL;
+  return host ? (host.startsWith('http') ? host : `https://${host}`) : undefined;
+};
+
 const uploadDriver = (env: NodeJS.ProcessEnv, isVercel: boolean): UploadDriver => {
   const explicit = env.UPLOAD_DRIVER?.trim().toLowerCase();
 
@@ -60,7 +77,11 @@ export default (): AppConfig => {
   const env = process.env;
   const isVercel = Boolean(env.VERCEL);
   const frontendUrl = env.FRONTEND_URL ?? 'http://localhost:3000';
-  const trustedOrigins = Array.from(new Set([frontendUrl, ...splitCsv(env.TRUSTED_ORIGINS)]));
+  const trustedOrigins = Array.from(
+    new Set(
+      [frontendUrl, ...vercelOrigins(env), ...splitCsv(env.TRUSTED_ORIGINS)].map(trimTrailingSlash),
+    ),
+  );
   const mailHost = env.SMTP_HOST ?? '';
   const mailUser = env.SMTP_USER ?? '';
   const mailPass = env.SMTP_PASS ?? env.SMTP_PASSWORD ?? '';
@@ -80,15 +101,15 @@ export default (): AppConfig => {
       trustedOrigins,
       uploadDir: env.UPLOAD_DIR ?? defaultUploadDir,
       uploadDriver: uploadDriver(env, isVercel),
-      maxFileSize: toNumber(env.MAX_FILE_SIZE, 5 * 1024 * 1024),
+      // Vercel Functions reject request bodies above 4.5 MB before the app is
+      // invoked, so keep the default below that limit on Vercel.
+      maxFileSize: toNumber(env.MAX_FILE_SIZE, isVercel ? 4 * 1024 * 1024 : 5 * 1024 * 1024),
     },
     auth: {
       secret: env.BETTER_AUTH_SECRET ?? '',
-      baseUrl:
-        env.BETTER_AUTH_URL ??
-        (env.VERCEL_URL
-          ? `https://${env.VERCEL_URL}`
-          : `http://localhost:${toNumber(env.PORT, 4000)}`),
+      baseUrl: trimTrailingSlash(
+        env.BETTER_AUTH_URL ?? vercelBaseUrl(env) ?? `http://localhost:${toNumber(env.PORT, 4000)}`,
+      ),
       cookieSameSite: (env.AUTH_COOKIE_SAME_SITE?.trim().toLowerCase() ?? 'lax') as CookieSameSite,
     },
     mail: {

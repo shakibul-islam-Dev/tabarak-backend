@@ -3,7 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import express from 'express';
 import helmet from 'helmet';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -30,6 +30,18 @@ async function bootstrap(): Promise<void> {
   const trustedOrigins = config.get<string[]>('app.trustedOrigins') ?? [];
   const isProduction = config.get<boolean>('app.isProduction') ?? false;
   const isVercel = config.get<boolean>('app.isVercel') ?? false;
+
+  const logger = new Logger('Bootstrap');
+
+  if (isProduction && (config.get<string>('app.frontendUrl') ?? '').includes('localhost')) {
+    logger.warn('FRONTEND_URL is not configured; the storefront may be blocked by CORS');
+  }
+
+  if (isVercel && uploadDriver === 'local') {
+    logger.warn(
+      'Uploads use ephemeral /tmp storage. Connect a Vercel Blob store for durable files.',
+    );
+  }
 
   if (uploadDriver === 'local') {
     mkdirSync(uploadDir, { recursive: true });
