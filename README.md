@@ -1,6 +1,6 @@
-# Tabark Backend
+# tabarak Backend
 
-Production-ready REST API for **Tabark**, a modern minimalist e-commerce store.
+Production-ready REST API for **tabarak**, a modern minimalist e-commerce store.
 Built with NestJS, PostgreSQL, Prisma and Better Auth as a modular monolith.
 
 The backend is the source of truth for authentication, pricing, inventory,
@@ -40,7 +40,7 @@ cp .env.example .env
 Edit `.env`:
 
 ```env
-DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/tabark?schema=public
+DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/tabarak?schema=public
 BETTER_AUTH_SECRET=replace-with-a-long-random-string
 ```
 
@@ -69,9 +69,9 @@ curl http://localhost:4000/api/v1/health
 
 | Setting | Default | Environment variable |
 | --- | --- | --- |
-| Email | `admin@tabark.local` | `SEED_ADMIN_EMAIL` |
+| Email | `admin@tabarak.local` | `SEED_ADMIN_EMAIL` |
 | Password | `ChangeMe123!` | `SEED_ADMIN_PASSWORD` |
-| Name | `Tabark Admin` | `SEED_ADMIN_NAME` |
+| Name | `tabarak Admin` | `SEED_ADMIN_NAME` |
 
 The password is only written when the credential account does not exist yet, so
 re-running the seed never resets an existing admin password. **Change the
@@ -92,7 +92,7 @@ sample coupons (`WELCOME10`, `FREESHIP`) and public site settings.
 | `TRUSTED_ORIGINS` | No | Comma-separated extra allowed origins |
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `BETTER_AUTH_SECRET` | Yes | Session signing secret (32+ chars) |
-| `BETTER_AUTH_URL` | Yes | Public API URL, e.g. `https://api.tabark.com` |
+| `BETTER_AUTH_URL` | Yes | Public API URL, e.g. `https://api.tabarak.com` |
 | `AUTH_COOKIE_SAME_SITE` | No | `lax` (default), `strict` or `none` for cross-site frontends |
 | `SMTP_HOST` | No | SMTP host; email is disabled when empty |
 | `SMTP_PORT` | No | SMTP port, default `587` |
@@ -100,7 +100,7 @@ sample coupons (`WELCOME10`, `FREESHIP`) and public site settings.
 | `SMTP_USER` / `SMTP_PASS` | No | SMTP credentials |
 | `EMAIL_FROM` | No | Sender name and address |
 | `UPLOAD_DRIVER` | No | `local` (default) or `vercel-blob` |
-| `UPLOAD_DIR` | No | Local upload directory, default `uploads` (or `/tmp/tabark-uploads` on Vercel) |
+| `UPLOAD_DIR` | No | Local upload directory, default `uploads` (or `/tmp/tabarak-uploads` on Vercel) |
 | `BLOB_READ_WRITE_TOKEN` | No | Vercel Blob token; injected automatically by Vercel |
 | `MAX_FILE_SIZE` | No | Upload size limit in bytes, default 5 MB |
 | `SEED_ADMIN_EMAIL` | No | Seeded admin email |
@@ -162,7 +162,7 @@ must send the session cookie:
 
 ```bash
 curl -c cookies.txt -H 'Content-Type: application/json' \
-  -d '{"email":"admin@tabark.local","password":"ChangeMe123!"}' \
+  -d '{"email":"admin@tabarak.local","password":"ChangeMe123!"}' \
   http://localhost:4000/api/auth/sign-in/email
 
 curl -b cookies.txt http://localhost:4000/api/v1/admin/dashboard
