@@ -18,3 +18,8 @@ jest.mock('better-auth/node', () => ({
 jest.mock('better-auth/adapters/prisma', () => ({
   prismaAdapter: jest.fn(() => ({})),
 }));
+
+jest.mock('better-auth/crypto', () => ({
+  hashPassword: jest.fn(async (password: string) => `hashed:${password}`),
+  verifyPassword: jest.fn(async () => true),
+}));

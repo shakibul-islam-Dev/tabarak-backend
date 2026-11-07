@@ -18,11 +18,13 @@ import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './database/prisma.module';
 import { EmailModule } from './email/email.module';
 import { InventoryModule } from './inventory/inventory.module';
+import { ModeratorModule } from './moderator/moderator.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
 import { OrdersModule } from './orders/orders.module';
 import { ProductsModule } from './products/products.module';
 import { ShippingModule } from './shipping/shipping.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { UsersModule } from './users/users.module';
 import { WishlistModule } from './wishlist/wishlist.module';
 
 @Module({
@@ -58,6 +60,8 @@ import { WishlistModule } from './wishlist/wishlist.module';
     UploadsModule,
     NewsletterModule,
     AuditModule,
+    UsersModule,
+    ModeratorModule,
     AdminModule,
   ],
   controllers: [AppController],

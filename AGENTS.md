@@ -1,978 +1,534 @@
-# TABARK — UPDATED BACKEND DEVELOPMENT CONTEXT
+# tabarak — Backend Engineering Context
 
 ## 1. Project Overview
 
-**Project Name:** Tabark  
-**Project Type:** Modern Minimalist E-commerce Startup  
-**Backend Framework:** NestJS  
-**Architecture:** Modular Monolith  
-**API Style:** REST API  
-**Language:** TypeScript  
-**Database:** PostgreSQL
+Build the backend for **tabarak**, a minimalist, premium e-commerce website, using a secure, maintainable, and scalable architecture.
 
-Build a secure, maintainable, and fully functional backend that integrates directly with the Tabark Next.js frontend.
+The backend must support three distinct user roles:
 
-The backend must support product management, categories, collections, inventory, shopping carts, wishlists, checkout preparation, orders, customer accounts, administration, and email notifications.
+1. **Customer**
+2. **Moderator**
+3. **Admin**
 
-Keep the architecture simple and avoid unnecessary infrastructure.
+Use a modular monolith architecture with NestJS and TypeScript. Prioritize clean code, database integrity, security, maintainability, and well-structured business logic.
 
----
+## 2. Technology Stack
 
-## 2. Updated Technology Stack
+- **Backend framework:** NestJS
+- **Language:** TypeScript
+- **Authentication:** Better Auth
+- **Database:** PostgreSQL
+- **ORM:** Prisma
+- **File uploads:** Multer
+- **File storage:** Local persistent storage
+- **Email:** Nodemailer with SMTP
+- **Validation:** class-validator and class-transformer
+- **Security:** Helmet and NestJS Throttler
+- **Testing:** Jest and Supertest
+- **Code quality:** ESLint and Prettier
 
-Use the following technologies:
+Do not introduce Redis, BullMQ, Swagger, OpenAPI, Pino, S3, Cloudinary, Resend, payment gateways, Docker, or microservices.
 
-| Technology | Purpose |
-|---|---|
-| NestJS | Backend framework |
-| TypeScript | Programming language |
-| PostgreSQL | Primary database |
-| Prisma ORM | Database management |
-| Better Auth | Authentication and sessions |
-| Multer | File upload handling |
-| Nodemailer | Email delivery |
-| class-validator | Request validation |
-| class-transformer | Data transformation |
-| Helmet | HTTP security headers |
-| NestJS Throttler | Rate limiting |
-| Jest | Unit testing |
-| Supertest | API integration testing |
-| ESLint + Prettier | Code quality and formatting |
+## 3. Database Engineering
 
-### Explicitly Excluded Technologies
+Treat database design as a core engineering responsibility, not simply as creating tables for application features.
 
-Do not introduce the following into the initial backend implementation:
+### Database design requirements
 
-- Redis.
-- BullMQ.
-- Swagger.
-- OpenAPI.
-- Pino.
-- S3.
-- Cloudinary.
-- Payment gateway integrations.
-- Docker.
-- Microservices architecture.
+- Design a normalized relational database using PostgreSQL.
+- Use Prisma schema definitions for models, relations, and constraints.
+- Define primary keys, foreign keys, unique constraints, and appropriate indexes.
+- Use explicit one-to-one, one-to-many, and many-to-many relationships where appropriate.
+- Prevent orphaned records and invalid relationships.
+- Use transactions for operations that modify multiple related records.
+- Use database constraints to enforce important business rules.
+- Avoid unnecessary duplication and inconsistent data.
+- Use appropriate deletion strategies, such as restricted deletion, cascading deletion, or soft deletion, depending on the entity.
+- Store timestamps such as `createdAt` and `updatedAt` consistently.
+- Use decimal types for monetary values, never floating-point types.
+- Store product prices and order item prices as snapshots where historical accuracy is required.
+- Use Prisma migrations for every database schema change.
+- Never modify the production database schema manually without a migration.
+- Seed development data with realistic sample records.
+- Keep database queries efficient and avoid N+1 query problems.
+- Add pagination, filtering, and sorting at the database-query level.
+- Use transactions for order creation, inventory updates, and other multi-step operations.
 
-Do not add these dependencies unless explicitly requested in a future development phase.
+### Main database entities
 
----
+Design the database around these entities:
 
-## 3. Backend Architecture
+- User
+- Session
+- Account
+- Verification
+- Role
+- UserRole (only if a separate role-assignment model is needed)
+- CustomerProfile
+- Address
+- Product
+- ProductVariant
+- ProductImage
+- Category
+- Collection
+- Inventory
+- Cart
+- CartItem
+- Wishlist
+- WishlistItem
+- Order
+- OrderItem
+- OrderStatusHistory
+- Coupon
+- ShippingMethod
+- NewsletterSubscriber
+- EmailLog
+- AuditLog
 
-Use a modular monolith architecture with NestJS.
+Better Auth must own its authentication-related data structures. Follow its required schema and adapter conventions rather than inventing incompatible authentication tables.
 
-Architecture principles:
+Avoid duplicating authentication users in a separate application user table. Connect business-related records to the appropriate Better Auth user identity.
 
-- Modular feature separation.
-- RESTful API design.
-- Strict TypeScript typing.
-- Separation of controllers and services.
-- Reusable providers.
-- Dependency injection.
-- Centralized exception handling.
-- DTO-based request validation.
-- Secure database operations.
-- Maintainable code structure.
+## 4. Three-Role Architecture and Authorization
 
-Avoid unnecessary abstractions and infrastructure.
+Implement strict role-based access control (RBAC) across the entire backend.
 
----
+The application has three roles with separate permissions and access boundaries.
 
-## 4. Authentication — Better Auth
+### Role 1: Customer
 
-Use Better Auth as the primary authentication and session management solution.
+Customers use the public website and customer account features.
 
-Support:
+**Permissions:**
+- Browse products, categories, and collections.
+- Search, filter, and sort products.
+- View product details and variants.
+- Manage their own profile.
+- Manage their own shipping addresses.
+- Add, update, and remove their own cart items.
+- Manage their own wishlist.
+- Create orders.
+- View their own orders and order history.
+- Subscribe to the newsletter.
+- Access their own account information.
 
-- Customer registration.
-- Email and password login.
-- Logout.
-- Email verification.
-- Password reset.
-- Session management.
-- Account management.
-- Google authentication as an optional future feature.
+**Restrictions:**
+- Cannot access the admin panel.
+- Cannot access moderator routes.
+- Cannot view other customers' private information.
+- Cannot change their own role.
+- Cannot modify product prices, stock, or store settings.
+- Cannot change order status or mark orders as paid.
 
-### NestJS Integration
+### Role 2: Moderator
 
-- Integrate Better Auth with the NestJS application.
-- Use its supported server handler integration.
-- Expose authentication routes under `/api/auth/*`.
-- Use Better Auth's PostgreSQL-compatible adapter.
-- Implement session verification for protected NestJS routes.
-- Create reusable authentication guards.
-- Implement role-based authorization separately.
-- Configure trusted origins and secure cookies.
+Moderators manage day-to-day store operations through a dedicated moderator panel.
 
-Better Auth must remain the single source of truth for authentication and sessions.
+**Permissions:**
+- Access moderator dashboard.
+- View and manage product listings.
+- Create, update, and organize products.
+- Manage product images and variants.
+- Manage categories and collections.
+- View customer orders.
+- Update permitted order statuses.
+- View inventory and update stock when authorized.
+- Manage coupons if granted the corresponding permission.
+- Moderate customer-facing content where applicable.
 
-Do not implement a competing custom JWT authentication system.
+**Restrictions:**
+- Cannot access sensitive system settings.
+- Cannot create, delete, or promote admins.
+- Cannot assign or change user roles.
+- Cannot modify administrator accounts.
+- Cannot access unrestricted user-management functionality.
+- Cannot change security-critical configuration.
+- Cannot perform actions outside explicitly granted permissions.
 
----
+### Role 3: Admin
 
-## 5. Database — PostgreSQL + Prisma
+Admins have full administrative control over the store.
 
-Use PostgreSQL as the primary database and Prisma ORM for database access.
+**Permissions:**
+- Access the complete admin panel.
+- Manage all products, variants, images, categories, and collections.
+- Manage inventory and stock.
+- View and manage all orders.
+- Manage order statuses.
+- Manage customers and customer accounts.
+- Create, update, deactivate, and manage moderator accounts.
+- Assign and revoke moderator permissions.
+- Manage roles and permissions.
+- Manage coupons and shipping settings.
+- View audit logs.
+- Manage newsletter subscribers.
+- Manage store settings.
+- Access administrative reports and dashboard statistics.
+- Perform all moderator operations.
+
+**Restrictions and safeguards:**
+- Protect critical admin actions with additional authorization checks.
+- Do not allow ordinary customers or moderators to promote themselves.
+- Protect the last active admin account from accidental removal or demotion.
+- Log sensitive administrative actions.
+- Require explicit confirmation for destructive operations.
+
+### Role implementation
+
+Use a centralized authorization system.
+
+Recommended components:
+
+- `RolesGuard`
+- `PermissionsGuard`
+- `@Roles()` decorator
+- `@Permissions()` decorator
+- Role and permission enums or database-backed permission records
+- A centralized authorization service
+
+Do not rely on frontend role checks for security. Every protected backend endpoint must independently verify authentication and authorization.
+
+A role determines the user's access category. Permissions determine which individual operations that role can perform.
+
+Use permission-based checks for sensitive moderator operations instead of giving moderators unrestricted admin access.
+
+Never accept a user's role from a public registration request. New registrations must always receive the `CUSTOMER` role.
+
+Admin and moderator accounts must be created or promoted through protected administrative procedures or secure initial setup.
+
+## 5. Authentication and Sessions
+
+Use Better Auth for:
+
+- Registration
+- Login
+- Logout
+- Session management
+- Password hashing and verification
+- Password reset
+- Email verification
+- Account management
+
+Integrate Better Auth with NestJS using its supported integration approach.
+
+Requirements:
+
+- Secure HTTP-only cookies.
+- Appropriate SameSite and Secure cookie settings.
+- Session expiration and revocation.
+- Email verification where required.
+- Password reset through Nodemailer.
+- Protected routes using authentication guards.
+- Role and permission checks after authentication.
+- Prevent privilege escalation.
+- Validate session ownership and user status.
+
+API base paths:
+
+- Application API: `/api/v1`
+- Better Auth endpoints: `/api/auth/*`
+
+## 6. Backend Modules
+
+Organize the application into independent NestJS modules.
+
+### Core modules
+
+- AuthModule
+- UsersModule
+- RolesModule
+- PermissionsModule
+- DatabaseModule
+- UploadsModule
+- EmailModule
+- AuditModule
+
+### E-commerce modules
+
+- ProductsModule
+- CategoriesModule
+- CollectionsModule
+- InventoryModule
+- CartModule
+- WishlistModule
+- OrdersModule
+- ShippingModule
+- CouponsModule
+- CustomersModule
+- NewsletterModule
+
+### Dashboard modules
+
+- CustomerDashboardModule
+- ModeratorDashboardModule
+- AdminDashboardModule
+
+Keep business logic inside services and keep controllers focused on HTTP requests and responses.
+
+## 7. API Structure
+
+Use REST APIs with consistent response formats.
+
+Example route organization:
+
+**Public routes**
+- `GET /api/v1/products`
+- `GET /api/v1/products/:slug`
+- `GET /api/v1/categories`
+- `GET /api/v1/collections`
+
+**Customer routes**
+- `GET /api/v1/me`
+- `PATCH /api/v1/me`
+- `GET /api/v1/addresses`
+- `POST /api/v1/addresses`
+- `GET /api/v1/cart`
+- `POST /api/v1/cart/items`
+- `GET /api/v1/wishlist`
+- `POST /api/v1/orders`
+- `GET /api/v1/orders/my-orders`
+
+**Moderator routes**
+- `GET /api/v1/moderator/dashboard`
+- `GET /api/v1/moderator/products`
+- `POST /api/v1/moderator/products`
+- `PATCH /api/v1/moderator/products/:id`
+- `GET /api/v1/moderator/orders`
+- `PATCH /api/v1/moderator/orders/:id/status`
+
+**Admin routes**
+- `GET /api/v1/admin/dashboard`
+- `GET /api/v1/admin/users`
+- `POST /api/v1/admin/moderators`
+- `PATCH /api/v1/admin/users/:id/role`
+- `GET /api/v1/admin/orders`
+- `GET /api/v1/admin/audit-logs`
+- `PATCH /api/v1/admin/settings`
+
+Every route must enforce the correct role and permission requirements.
+
+## 8. File Uploads
+
+Use Multer for handling uploads.
+
+Requirements:
+
+- Configure file size limits.
+- Validate MIME types and file extensions.
+- Generate unique file names.
+- Prevent path traversal.
+- Store uploaded files in a persistent local `uploads/` directory.
+- Organize uploads into folders such as products, categories, and profiles.
+- Provide controlled access to uploaded files where appropriate.
+- Delete unused files safely.
+- Keep file storage behind a dedicated service so cloud storage can be introduced later.
+
+Multer handles uploads; it is not the storage system itself. Production hosting must provide persistent disk storage. Do not depend on temporary or ephemeral storage for product images.
+
+## 9. Email System
+
+Use Nodemailer with SMTP.
+
+Email features:
+
+- Account verification
+- Password reset
+- Order confirmation
+- Order status updates
+- Customer notifications
+- Admin notifications where needed
+- Newsletter-related emails
+
+Keep email templates separate from business logic.
+
+Use environment variables for SMTP credentials. Never expose SMTP credentials to the frontend.
+
+## 10. Orders and Payments
+
+Payment gateway integration is intentionally excluded for the current version.
 
 Implement:
-- Database migrations.
-- Seed scripts.
-- Relational models.
-- Foreign-key relationships.
-- Unique constraints.
-- Database indexes.
-- Transaction support.
-- Type-safe queries.
 
-### Core Database Models
-
-**Authentication**
-- User.
-- Session.
-- Account.
-- Verification.
-
-Use Better Auth's required schema for authentication-related tables.
-
-**Customers**
-- CustomerProfile.
-- CustomerAddress.
-- Wishlist.
-- WishlistItem.
-
-**Products**
-- Product.
-- ProductImage.
-- ProductVariant.
-- Category.
-- ProductCategory.
-- Collection.
-- CollectionProduct.
-- ProductAttribute.
-
-**Inventory**
-- Inventory.
-- InventoryMovement.
-- StockReservation.
-
-**Shopping**
-- Cart.
-- CartItem.
-- Coupon.
-- Discount.
-
-**Orders**
-- Order.
-- OrderItem.
-- OrderAddress.
-- OrderStatusHistory.
-
-**Administration**
-- AdminProfile.
-- Role.
-- Permission.
-- AuditLog.
-
-Design relationships carefully and preserve historical order information.
-
----
-
-## 6. Product Management
-
-Implement a complete product management system.
-
-Features:
-- Create products.
-- Update products.
-- Delete or archive products.
-- Publish and unpublish products.
-- Manage product descriptions.
-- Manage product images.
-- Manage pricing.
-- Manage product variants.
-- Manage categories.
-- Manage collections.
-- Manage availability.
-- Manage featured products.
-
-### Product Variants
-
-Support:
-- Size.
-- Color.
-- Material.
-- Style.
-- Other configurable attributes.
-
-Each variant should support:
-- Unique SKU.
-- Price.
-- Optional compare-at price.
-- Stock quantity.
-- Availability status.
-- Variant-specific images.
-
-### Product APIs
-
-Support:
-- All published products.
-- Featured products.
-- New arrivals.
-- Best sellers.
-- Products by category.
-- Products by collection.
-- Product search.
-- Price filtering.
-- Availability filtering.
-- Sorting.
-- Pagination.
-
-Use PostgreSQL search capabilities initially.
-
----
-
-## 7. Category & Collection Management
-
-Features:
-- Create, update, and delete categories.
-- Nested categories where appropriate.
-- Category images.
-- Category descriptions.
-- Collection creation.
-- Collection management.
-- Manual product assignment.
-- Featured collections.
-- Collection publishing status.
-
-All collection and category information must be dynamically retrieved by the frontend.
-
----
-
-## 8. Inventory Management
-
-Implement reliable inventory tracking.
-
-Features:
-- Variant-level stock.
-- Stock quantity updates.
-- Inventory movement history.
-- Low-stock detection.
-- Out-of-stock detection.
-- Stock reservation during checkout.
-- Reservation expiration.
-- Inventory restoration after eligible cancellations.
-
-### Inventory Rules
-
-- Never trust client-submitted stock quantities.
-- Verify stock on the server.
-- Prevent overselling.
-- Use database transactions.
-- Handle concurrent checkout requests safely.
-- Maintain inventory history.
-
----
-
-## 9. Shopping Cart
-
-Implement a persistent shopping cart.
-
-Features:
-- Add items.
-- Remove items.
-- Update quantities.
-- Retrieve cart.
-- Clear cart.
-- Calculate subtotal.
-- Apply discounts.
-- Validate product availability.
-- Validate product variants.
-
-### Guest Cart
-
-Allow visitors to shop without registration.
-
-Support:
-- Guest cart identifiers.
-- Persistent guest carts.
-- Cart retrieval.
-- Guest-to-customer cart merging after login.
-
-The backend must calculate all product prices and cart totals.
-
-Never trust frontend-submitted prices.
-
----
-
-## 10. Wishlist
-
-Implement:
-- Add products to wishlist.
-- Remove products.
-- Retrieve wishlist.
-- Prevent duplicate entries.
-- Synchronize authenticated customer wishlists.
-
-Guest wishlist functionality can be managed locally and synchronized after login.
-
----
-
-## 11. Checkout & Order Management
-
-Implement a checkout preparation and order management system.
-
-### Checkout Flow
-
-1. Customer reviews the cart.
-2. Backend validates products.
-3. Backend verifies variants and inventory.
-4. Customer selects a shipping address.
-5. Backend calculates shipping charges.
-6. Customer applies a coupon if available.
-7. Backend recalculates the order total.
-8. Backend creates an order with an appropriate pending or awaiting-payment status.
-9. Order information is stored.
-10. Customer can view order details and status.
-
-**Important:** Do not implement payment gateway integrations at this stage.
-
-The order architecture should remain ready for future payment integration without implementing payment processing now.
-
-Do not mark orders as paid without a verified payment process.
-
-### Order Statuses
-
-- Pending.
-- Awaiting Payment.
-- Processing.
-- Packed.
-- Shipped.
-- Delivered.
-- Cancelled.
-
-Keep order status transitions controlled and maintain a complete status history.
-
-### Customer Order Features
-
-- View orders.
-- View order details.
-- View purchased products.
-- View order status.
-- View shipping information.
-- Access order history.
-
-### Admin Order Features
-
-- View orders.
-- Search and filter orders.
-- Update order status.
-- View customer details.
-- Manage shipping information.
-- Cancel eligible orders.
-
----
-
-## 12. Shipping Management
-
-Implement basic shipping configuration.
-
-Features:
-- Shipping zones.
-- Shipping methods.
-- Shipping prices.
-- Free shipping rules.
-- Delivery estimates.
-- Address management.
-- Shipment information.
-- Tracking number storage.
-
-Keep shipping calculations on the backend.
-
-External courier integrations can be added later.
-
----
-
-## 13. Coupon & Discount Management
-
-Support:
-- Percentage discounts.
-- Fixed-amount discounts.
-- Minimum order amount.
-- Maximum discount amount.
-- Expiration dates.
-- Usage limits.
-- Per-customer limits.
-- Product-specific discounts.
-- Collection-specific discounts.
-- Free shipping discounts.
-- Active/inactive status.
-
-All discount validation and calculations must happen server-side.
-
----
-
-## 14. File Upload Management — Multer
-
-Use Multer for handling file uploads within NestJS.
-
-Do not implement S3 or Cloudinary storage in the current version.
-
-### Upload Features
-
-- Product image uploads.
-- Multiple product images.
-- Variant images.
-- Collection images.
-- Promotional banners.
-- Image replacement.
-- Image deletion.
-
-### Upload Implementation
-
-- Use NestJS `FileInterceptor` and `FilesInterceptor`.
-- Validate image MIME types.
-- Restrict file sizes.
-- Generate unique filenames.
-- Prevent unsafe file uploads.
-- Store uploaded files in a controlled local upload directory.
-- Save file paths and metadata in PostgreSQL.
-- Serve uploaded images through properly configured static file routes.
-
-### File Security
-
-- Never trust filenames provided by clients.
-- Never allow arbitrary file extensions.
-- Validate actual file content where appropriate.
-- Restrict upload permissions to authorized users.
-- Prevent directory traversal.
-- Do not allow executable file uploads.
-- Configure safe file access.
-
-Keep the storage service modular so cloud storage can be introduced later without rewriting product management.
-
-Note: Local file storage requires persistent disk storage in production. Do not use temporary or ephemeral deployment storage for permanent product images.
-
----
-
-## 15. Email System — Nodemailer
-
-Use Nodemailer for email delivery.
-
-Do not introduce Resend or another email delivery SDK in the initial version.
-
-### Email Features
-
-- Welcome emails.
-- Email verification.
-- Password reset.
-- Order confirmation.
-- Order status updates.
-- Shipping notifications.
-- Newsletter notifications.
-
-### Implementation
-
-- Create a reusable EmailModule.
-- Create an EmailService.
-- Configure SMTP through environment variables.
-- Use reusable HTML email templates.
-- Keep email credentials private.
-- Handle SMTP errors.
-- Avoid blocking critical API responses unnecessarily.
-
-Use asynchronous email sending where appropriate without introducing BullMQ or Redis.
-
-For important email operations, record the result and allow controlled retries.
-
----
-
-## 16. Customer Management
-
-Implement:
-- Customer profiles.
-- Customer addresses.
-- Customer order history.
-- Customer search.
-- Customer account status.
-- Customer support information.
-
-Protect customer information through proper authentication and authorization.
-
-Admin access must be permission-controlled.
-
----
-
-## 17. Administration & Role-Based Access Control
-
-Create a secure administration system.
-
-### Roles
-
-- Super Admin.
-- Admin.
-- Product Manager.
-- Order Manager.
-- Customer Support.
-
-### Admin Features
-
-- Dashboard data.
-- Product management.
-- Category management.
-- Collection management.
-- Inventory management.
-- Order management.
-- Customer management.
-- Coupon management.
-- Website content management.
-
-Implement NestJS guards and permission decorators.
-
-Never rely on frontend restrictions for administrative security.
-
----
-
-## 18. REST API Structure
-
-Use versioned REST endpoints.
-
-Base API:
-
-`/api/v1`
-
-Authentication:
-
-`/api/auth/*`
-
-### Customer API Endpoints
-
-| Module | Endpoint |
-|---|---|
-| Products | `/api/v1/products` |
-| Product details | `/api/v1/products/:slug` |
-| Categories | `/api/v1/categories` |
-| Collections | `/api/v1/collections` |
-| Search | `/api/v1/search` |
-| Cart | `/api/v1/cart` |
-| Wishlist | `/api/v1/wishlist` |
-| Checkout | `/api/v1/checkout` |
-| Orders | `/api/v1/orders` |
-| Addresses | `/api/v1/addresses` |
-| Customer profile | `/api/v1/customers/me` |
-| Coupon validation | `/api/v1/coupons/validate` |
-| Newsletter | `/api/v1/newsletter/subscribe` |
-
-### Admin API Endpoints
-
-Prefix:
-
-`/api/v1/admin/*`
-
-Include:
-- Dashboard.
-- Products.
-- Categories.
-- Collections.
-- Inventory.
-- Orders.
-- Customers.
-- Coupons.
-- Settings.
-
-All administrative endpoints must be protected.
-
-### Response Format
-
-Use a consistent response format.
-
-Successful response:
-
-```json
-{
-  "success": true,
-  "data": {},
-  "message": "Request completed successfully"
-}
-```
-
-Error response:
-
-```json
-{
-  "success": false,
-  "statusCode": 400,
-  "message": "Invalid request",
-  "error": "VALIDATION_ERROR"
-}
-```
-
-Use consistent pagination metadata.
-
-Do not expose internal database errors or stack traces in production.
-
----
-
-## 19. Frontend & Backend Integration
-
-The Next.js frontend and NestJS backend must communicate through a consistent API contract.
-
-### Integration Rules
-
-- Use a centralized API client in Next.js.
-- Keep the API base URL in environment variables.
-- Use shared TypeScript types where practical.
-- Maintain consistent response structures.
-- Implement loading and error states.
-- Handle expired sessions.
-- Handle network failures.
-- Avoid duplicating business logic.
-- Keep all sensitive operations on the backend.
-
-### Authentication Integration
-
-Configure:
-- Better Auth trusted origins.
-- Secure cookie handling.
-- Credentialed CORS.
-- Correct cookie domain.
-- HTTPS in production.
-- Appropriate SameSite settings.
-- Session verification.
-
-Do not expose privileged backend credentials to browser code.
-
-### API Responsibilities
-
-The frontend handles:
-- Displaying data.
-- User interactions.
-- Form input.
-- Visual state.
-- Client-side validation for usability.
-
-The backend handles:
-- Authentication.
-- Authorization.
-- Product pricing.
-- Inventory.
-- Cart calculations.
-- Coupon validation.
-- Checkout.
+- Cart validation.
+- Product and variant availability checks.
+- Inventory validation.
 - Order creation.
-- Business rules.
-- Data persistence.
+- Order item price snapshots.
+- Shipping address snapshots.
+- Order status management.
+- Order history.
+- Order confirmation emails.
 
-The backend must always remain the source of truth for business-critical information.
+Do not mark an order as paid without a verified payment process. Keep payment-related fields and future integration points structured so a payment provider can be added later.
 
----
+## 11. Security
 
-## 20. Recommended Backend Folder Structure
+- Validate all incoming data.
+- Use Helmet.
+- Apply rate limiting with NestJS Throttler.
+- Protect authentication and administrative endpoints.
+- Enforce RBAC and permission checks server-side.
+- Prevent SQL injection through safe Prisma usage.
+- Prevent insecure direct object references by checking resource ownership.
+- Protect against mass assignment.
+- Restrict file uploads.
+- Use secure cookies.
+- Keep secrets in environment variables.
+- Log important administrative and security events.
+- Never expose passwords, tokens, or sensitive account information in API responses or logs.
+
+## 12. Audit Logging
+
+Maintain an audit trail for important actions.
+
+Record:
+- Actor user ID.
+- Actor role.
+- Action.
+- Target entity and ID.
+- Timestamp.
+- Relevant metadata.
+- Request context where appropriate.
+
+Audit events should include:
+- Role changes.
+- Moderator creation or deactivation.
+- Product creation and modification.
+- Inventory changes.
+- Order status changes.
+- Sensitive customer account changes.
+- Store setting changes.
+
+Audit logs must be protected from unauthorized modification and access.
+
+## 13. Environment Variables
+
+Example `.env`:
+
+```env
+NODE_ENV=development
+PORT=3001
+
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/tabarak"
+
+BETTER_AUTH_SECRET="replace-with-a-secure-secret"
+BETTER_AUTH_URL="http://localhost:3001"
+
+SMTP_HOST="smtp.example.com"
+SMTP_PORT=587
+SMTP_USER="your-email@example.com"
+SMTP_PASSWORD="your-smtp-password"
+SMTP_FROM="tabarak <your-email@example.com>"
+
+UPLOAD_DIR="./uploads"
+MAX_FILE_SIZE=5242880
+
+FRONTEND_URL="http://localhost:3000"
+```
+
+Never commit real secrets to version control.
+
+## 14. Recommended Project Structure
 
 ```text
 src/
-├── main.ts
-├── app.module.ts
-│
-├── common/
-│   ├── decorators/
-│   ├── guards/
-│   ├── filters/
-│   ├── interceptors/
-│   ├── pipes/
-│   └── constants/
-│
-├── config/
-│   ├── app.config.ts
-│   ├── database.config.ts
-│   ├── auth.config.ts
-│   └── mail.config.ts
-│
-├── database/
-│   ├── prisma.module.ts
-│   └── prisma.service.ts
-│
 ├── auth/
 ├── users/
-├── customers/
+├── roles/
+├── permissions/
+├── database/
 ├── products/
 ├── categories/
 ├── collections/
 ├── inventory/
 ├── cart/
 ├── wishlist/
-├── checkout/
 ├── orders/
 ├── shipping/
 ├── coupons/
+├── customers/
 ├── uploads/
-├── newsletter/
-├── notifications/
 ├── email/
-├── admin/
-└── audit/
+├── newsletter/
+├── audit/
+├── dashboards/
+│   ├── customer/
+│   ├── moderator/
+│   └── admin/
+├── common/
+│   ├── decorators/
+│   ├── guards/
+│   ├── filters/
+│   ├── interceptors/
+│   ├── pipes/
+│   └── utils/
+├── config/
+├── app.module.ts
+└── main.ts
+
+prisma/
+├── schema.prisma
+├── migrations/
+└── seed.ts
+
+uploads/
 ```
 
-Each module should contain its own controllers, services, DTOs, and related logic.
-
----
-
-## 21. Environment Configuration
-
-Use environment variables for secrets and configuration.
-
-Example:
-
-```env
-NODE_ENV=development
-PORT=4000
-API_PREFIX=api/v1
-
-FRONTEND_URL=http://localhost:3000
-
-DATABASE_URL=
-
-BETTER_AUTH_SECRET=
-BETTER_AUTH_URL=http://localhost:4000
-
-SMTP_HOST=
-SMTP_PORT=
-SMTP_USER=
-SMTP_PASS=
-EMAIL_FROM=
-
-UPLOAD_DIR=uploads
-MAX_FILE_SIZE=5242880
-
-TRUSTED_ORIGINS=http://localhost:3000
-```
-
-These are placeholders, not actual credentials.
-
-Requirements:
-- Validate environment variables at startup.
-- Never commit real secrets.
-- Provide `.env.example`.
-- Separate development and production settings.
-- Use secure SMTP settings in production.
-- Ensure upload directories have persistent storage.
-
----
-
-## 22. Security Requirements
-
-Implement:
-- Helmet.
-- Strict CORS.
-- Rate limiting.
-- Input validation.
-- Better Auth session verification.
-- Role-based authorization.
-- Secure cookies.
-- File upload validation.
-- Request size limits.
-- Environment-based secrets.
-- Audit logging.
-- Safe error handling.
-
-Critical rules:
-
-1. Never expose database credentials.
-2. Never expose authentication secrets.
-3. Never trust frontend prices.
-4. Never trust frontend roles.
-5. Never expose private customer data.
-6. Never allow unrestricted admin operations.
-7. Never accept arbitrary file uploads.
-8. Never expose sensitive information in logs.
-9. Validate every incoming request.
-10. Protect all customer-owned resources.
-
----
-
-## 23. Testing Strategy
+## 15. Testing Requirements
 
 Use Jest and Supertest.
 
-### Unit Tests
-
 Test:
-- Authentication guards.
-- Product services.
-- Price calculations.
-- Discount calculations.
-- Inventory operations.
-- Cart services.
-- Order state transitions.
-- Permission checks.
+- Authentication and session handling.
+- Customer registration and default role assignment.
+- Role-based route protection.
+- Permission-based moderator restrictions.
+- Admin-only operations.
+- Prevention of privilege escalation.
+- Customer resource ownership.
+- Database relationships and constraints.
+- Product and inventory operations.
+- Cart and order creation.
+- Transaction rollback on failures.
+- File upload validation.
+- Email service behavior.
+- Audit log creation.
 
-### Integration Tests
+Include negative authorization tests: customers must not access moderator or admin endpoints, and moderators must not access admin-only functionality.
 
-Test:
-- Prisma database operations.
-- Better Auth integration.
-- Cart synchronization.
-- Checkout.
-- Order creation.
-- File uploads.
-- Email service.
-- Inventory reservations.
+## 16. Development Priorities
 
-### End-to-End Tests
+Build in this order:
 
-Test the complete customer journey:
+1. NestJS project setup and configuration.
+2. PostgreSQL and Prisma setup.
+3. Database architecture, schema design, migrations, and seed data.
+4. Better Auth integration.
+5. Customer, moderator, and admin role architecture.
+6. Authentication guards, role guards, and permission guards.
+7. Product, category, and collection modules.
+8. Inventory management.
+9. Cart and wishlist.
+10. Order management without payment integration.
+11. Multer uploads.
+12. Nodemailer email system.
+13. Customer, moderator, and admin dashboards APIs.
+14. Audit logging.
+15. Security hardening and automated tests.
 
-1. Register.
-2. Log in.
-3. Browse products.
-4. Search products.
-5. Add to cart.
-6. Update quantities.
-7. Apply a coupon.
-8. Submit checkout.
-9. Create an order.
-10. Retrieve order details.
-11. Track order status.
+## 17. Engineering Standards
 
-Also test administrative operations.
+- Write clean, strongly typed TypeScript.
+- Follow NestJS module architecture.
+- Keep controllers thin and services focused.
+- Keep database access organized and reusable.
+- Use DTOs for request validation.
+- Avoid unnecessary abstractions.
+- Use database transactions for critical business operations.
+- Use consistent error handling and HTTP status codes.
+- Write tests for important business logic and permissions.
+- Maintain a clear separation between customer, moderator, and admin capabilities.
+- Design the database before implementing business modules.
+- Prefer data integrity and security over shortcuts.
 
-Use a separate test database and mock external services where appropriate.
-
----
-
-## 24. Deployment Requirements
-
-Prepare the backend for production deployment without Docker.
-
-Requirements:
-- Production build configuration.
-- Environment variable validation.
-- Database migration strategy.
-- Persistent database hosting.
-- Persistent file storage.
-- HTTPS.
-- Secure cookies.
-- Graceful shutdown.
-- Health check endpoint.
-- Structured error handling.
-- Database backups.
-- Application monitoring through deployment-platform logs.
-
-Do not depend on temporary deployment storage for product images.
-
-Keep the deployment process simple and compatible with standard Node.js hosting platforms.
-
----
-
-## 25. Development Phases
-
-Implement the backend in the following order.
-
-**Phase 1 — Foundation**
-- Initialize NestJS.
-- Configure PostgreSQL.
-- Integrate Prisma.
-- Configure environment variables.
-- Set up global validation.
-- Configure security middleware.
-- Establish API structure.
-
-**Phase 2 — Authentication**
-- Integrate Better Auth.
-- Configure session handling.
-- Implement authentication guards.
-- Implement customer authorization.
-- Implement admin roles.
-
-**Phase 3 — Product System**
-- Products.
-- Variants.
-- Categories.
-- Collections.
-- Product images.
-- Search and filtering.
-
-**Phase 4 — Shopping**
-- Cart.
-- Guest cart.
-- Cart synchronization.
-- Wishlist.
-- Pricing calculations.
-
-**Phase 5 — Orders**
-- Checkout validation.
-- Inventory reservations.
-- Order creation.
-- Order history.
-- Order management.
-
-**Phase 6 — Administration**
-- Dashboard.
-- Product management.
-- Inventory management.
-- Order management.
-- Customer management.
-- Coupon management.
-
-**Phase 7 — Supporting Services**
-- Multer uploads.
-- Nodemailer.
-- Newsletter.
-- Shipping configuration.
-- Audit logging.
-
-**Phase 8 — Testing & Deployment**
-- Unit testing.
-- Integration testing.
-- E2E testing.
-- Security review.
-- Performance optimization.
-- Production deployment.
-
----
-
-## 26. Final Development Instructions
-
-Build Tabark's backend as a secure, modular, maintainable, and production-ready e-commerce API.
-
-### Non-Negotiable Requirements
-
-1. NestJS with TypeScript.
-2. Better Auth for authentication.
-3. PostgreSQL with Prisma ORM.
-4. Multer for file uploads.
-5. Nodemailer for email delivery.
-6. Versioned REST APIs.
-7. Strong request validation.
-8. Secure role-based authorization.
-9. Reliable inventory and order management.
-10. Backend-driven pricing and business logic.
-11. Consistent Next.js integration.
-12. Comprehensive testing.
-13. Production-ready configuration.
-14. No unnecessary infrastructure.
-
-### Final Quality Standard
-
-The backend must be:
-
-- Secure.
-- Reliable.
-- Maintainable.
-- Type-safe.
-- Efficient.
-- Modular.
-- Easy to integrate.
-- Ready for future expansion.
-
-**FINAL PRINCIPLE**
-
-KEEP THE ARCHITECTURE SIMPLE.
-
-KEEP BUSINESS LOGIC CENTRALIZED.
-
-KEEP CUSTOMER DATA SECURE.
-
-KEEP THE API CONSISTENT.
-
-BUILD ONLY WHAT TABARK NEEDS RIGHT NOW.
+**Final goal:** Build a production-ready, secure, well-engineered e-commerce backend for tabarak, with a properly designed PostgreSQL database, Prisma ORM, Better Auth authentication, and three clearly separated user roles: Customer, Moderator, and Admin.

@@ -16,5 +16,6 @@ import { SettingsService } from './settings.service';
     AdminSettingsController,
   ],
   providers: [DashboardService, AdminCustomersService, SettingsService],
+  exports: [DashboardService],
 })
 export class AdminModule {}

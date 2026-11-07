@@ -7,7 +7,7 @@ import { AllExceptionsFilter } from '../src/common/filters/all-exceptions.filter
 import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor';
 import { validationExceptionFactory } from '../src/common/pipes/validation';
 
-describe('Tabark API (e2e)', () => {
+describe('Tabarak API (e2e)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
@@ -66,6 +66,19 @@ describe('Tabark API (e2e)', () => {
       success: false,
       statusCode: 401,
     });
+  });
+
+  it('protects customer account and order history endpoints', async () => {
+    await request(app.getHttpServer()).get('/api/v1/me').expect(401);
+    await request(app.getHttpServer()).get('/api/v1/orders/my-orders').expect(401);
+  });
+
+  it('protects user, role and moderator management endpoints', async () => {
+    await request(app.getHttpServer()).get('/api/v1/admin/users').expect(401);
+    await request(app.getHttpServer()).get('/api/v1/admin/roles').expect(401);
+    await request(app.getHttpServer()).get('/api/v1/moderator/dashboard').expect(401);
+    await request(app.getHttpServer()).get('/api/v1/moderator/products').expect(401);
+    await request(app.getHttpServer()).get('/api/v1/moderator/orders').expect(401);
   });
 
   it('requires a guest identifier for guest carts', async () => {

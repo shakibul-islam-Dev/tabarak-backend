@@ -16,9 +16,10 @@ export function createAuth(prisma: PrismaService, config: ConfigService, email: 
   const isProduction = config.get<boolean>('app.isProduction') ?? false;
   const trustedOrigins = config.get<string[]>('app.trustedOrigins') ?? [];
   const mailEnabled = config.get<boolean>('mail.enabled') ?? false;
+  const cookieSameSite = config.get<'lax' | 'strict' | 'none'>('auth.cookieSameSite') ?? 'lax';
 
   return betterAuth({
-    appName: 'Tabark',
+    appName: 'Tabarak',
     baseURL: config.get<string>('auth.baseUrl'),
     basePath: '/api/auth',
     secret: config.get<string>('auth.secret'),
@@ -59,7 +60,7 @@ export function createAuth(prisma: PrismaService, config: ConfigService, email: 
       defaultCookieAttributes: {
         httpOnly: true,
         secure: isProduction,
-        sameSite: 'lax',
+        sameSite: cookieSameSite,
       },
     },
     databaseHooks: {

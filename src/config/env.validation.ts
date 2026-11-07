@@ -53,10 +53,30 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
+  SMTP_PASSWORD?: string;
+
+  @IsOptional()
+  @IsString()
   EMAIL_FROM?: string;
+
+  @IsOptional()
+  @IsString()
+  SMTP_FROM?: string;
+
+  @IsOptional()
+  @IsIn(['lax', 'strict', 'none'])
+  AUTH_COOKIE_SAME_SITE?: string;
 
   @IsString()
   UPLOAD_DIR = 'uploads';
+
+  @IsOptional()
+  @IsIn(['local', 'vercel-blob'])
+  UPLOAD_DRIVER?: string;
+
+  @IsOptional()
+  @IsString()
+  BLOB_READ_WRITE_TOKEN?: string;
 
   @Type(() => Number)
   @IsInt()

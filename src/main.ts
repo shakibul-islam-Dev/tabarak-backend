@@ -26,10 +26,14 @@ async function bootstrap(): Promise<void> {
   const port = config.get<number>('app.port') ?? 4000;
   const apiPrefix = config.get<string>('app.apiPrefix') ?? 'api/v1';
   const uploadDir = join(process.cwd(), config.get<string>('app.uploadDir') ?? 'uploads');
+  const uploadDriver = config.get<'local' | 'vercel-blob'>('app.uploadDriver') ?? 'local';
   const trustedOrigins = config.get<string[]>('app.trustedOrigins') ?? [];
   const isProduction = config.get<boolean>('app.isProduction') ?? false;
+  const isVercel = config.get<boolean>('app.isVercel') ?? false;
 
-  mkdirSync(uploadDir, { recursive: true });
+  if (uploadDriver === 'local') {
+    mkdirSync(uploadDir, { recursive: true });
+  }
 
   app.use(
     helmet({
@@ -58,7 +62,9 @@ async function bootstrap(): Promise<void> {
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-  app.useStaticAssets(uploadDir, { prefix: '/uploads/' });
+  if (uploadDriver === 'local') {
+    app.useStaticAssets(uploadDir, { prefix: '/uploads/' });
+  }
 
   app.setGlobalPrefix(apiPrefix);
 
@@ -73,8 +79,13 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalInterceptors(new ResponseInterceptor(app.get(Reflector)));
 
-  app.set('trust proxy', isProduction ? 1 : 0);
-  app.enableShutdownHooks();
+  app.set('trust proxy', isProduction || isVercel ? 1 : 0);
+
+  // Vercel manages the function lifecycle; process shutdown hooks are meant
+  // for a long-running server and are unnecessary in serverless execution.
+  if (!isVercel) {
+    app.enableShutdownHooks();
+  }
 
   await app.listen(port, '0.0.0.0');
 }

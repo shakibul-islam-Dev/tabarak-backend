@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Put } from '@nestjs/common';
 import { PERMISSIONS } from '../common/constants/permissions';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
@@ -38,6 +38,13 @@ export class AdminSettingsController {
   @RequirePermissions(PERMISSIONS.SETTINGS_MANAGE)
   @ResponseMessage('Settings updated successfully')
   updateMany(@Body() dto: UpdateSettingsDto, @CurrentUser('id') actorUserId: string) {
+    return this.settingsService.upsertMany(dto.settings, actorUserId);
+  }
+
+  @Patch()
+  @RequirePermissions(PERMISSIONS.SETTINGS_MANAGE)
+  @ResponseMessage('Settings updated successfully')
+  partialUpdate(@Body() dto: UpdateSettingsDto, @CurrentUser('id') actorUserId: string) {
     return this.settingsService.upsertMany(dto.settings, actorUserId);
   }
 

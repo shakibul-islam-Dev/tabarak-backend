@@ -14,6 +14,11 @@ export class OrdersController {
     return this.ordersService.findForCustomer(user, query);
   }
 
+  @Get('my-orders')
+  findMyOrders(@CurrentUser() user: AuthUser, @Query() query: OrderQueryDto) {
+    return this.ordersService.findForCustomer(user, query);
+  }
+
   @Get(':id')
   findOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.ordersService.findOneForCustomer(user, id);

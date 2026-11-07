@@ -16,7 +16,7 @@ collects user input.
 | ORM | Prisma 6 |
 | Authentication | Better Auth (email + password sessions) |
 | Validation | class-validator + class-transformer |
-| Uploads | Multer (local disk storage) |
+| Uploads | Multer (local disk or Vercel Blob) |
 | Email | Nodemailer + SMTP |
 | Security | Helmet, CORS, Throttler, RBAC guards |
 | Tests | Jest + Supertest |
@@ -93,12 +93,15 @@ sample coupons (`WELCOME10`, `FREESHIP`) and public site settings.
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `BETTER_AUTH_SECRET` | Yes | Session signing secret (32+ chars) |
 | `BETTER_AUTH_URL` | Yes | Public API URL, e.g. `https://api.tabark.com` |
+| `AUTH_COOKIE_SAME_SITE` | No | `lax` (default), `strict` or `none` for cross-site frontends |
 | `SMTP_HOST` | No | SMTP host; email is disabled when empty |
 | `SMTP_PORT` | No | SMTP port, default `587` |
 | `SMTP_SECURE` | No | `true` for implicit TLS (usually port 465) |
 | `SMTP_USER` / `SMTP_PASS` | No | SMTP credentials |
 | `EMAIL_FROM` | No | Sender name and address |
-| `UPLOAD_DIR` | No | Local upload directory, default `uploads` |
+| `UPLOAD_DRIVER` | No | `local` (default) or `vercel-blob` |
+| `UPLOAD_DIR` | No | Local upload directory, default `uploads` (or `/tmp/tabark-uploads` on Vercel) |
+| `BLOB_READ_WRITE_TOKEN` | No | Vercel Blob token; injected automatically by Vercel |
 | `MAX_FILE_SIZE` | No | Upload size limit in bytes, default 5 MB |
 | `SEED_ADMIN_EMAIL` | No | Seeded admin email |
 | `SEED_ADMIN_PASSWORD` | No | Seeded admin password |
@@ -195,12 +198,12 @@ cart and marks the guest cart as converted.
 | Settings | `GET /api/v1/settings` |
 | Cart | `GET/DELETE /api/v1/cart`, `POST/PATCH/DELETE /api/v1/cart/items`, `POST /api/v1/cart/merge` |
 | Wishlist | `GET/DELETE /api/v1/wishlist`, `POST/DELETE /api/v1/wishlist/items`, `POST /api/v1/wishlist/sync` |
-| Customers | `GET/PATCH /api/v1/customers/me` |
+| Account | `GET/PATCH /api/v1/me` (alias: `/api/v1/customers/me`) |
 | Addresses | `GET/POST /api/v1/addresses`, `PATCH/DELETE /api/v1/addresses/:id` |
 | Shipping | `GET /api/v1/shipping/methods?country=US` |
 | Coupons | `POST /api/v1/coupons/validate` |
 | Checkout | `POST /api/v1/checkout/preview`, `POST /api/v1/checkout` |
-| Orders | `GET /api/v1/orders`, `GET /api/v1/orders/:id`, `POST /api/v1/orders/:id/cancel` |
+| Orders | `GET /api/v1/orders`, `GET /api/v1/orders/my-orders`, `GET /api/v1/orders/:id`, `POST /api/v1/orders/:id/cancel` |
 | Newsletter | `POST /api/v1/newsletter/subscribe`, `/confirm`, `/unsubscribe` |
 
 Products support search, category/collection filters, price and availability
@@ -215,6 +218,9 @@ permission.
 | Area | Prefix |
 | --- | --- |
 | Dashboard | `/api/v1/admin/dashboard` |
+| Users | `/api/v1/admin/users` |
+| Moderators | `/api/v1/admin/moderators` |
+| Roles and permissions | `/api/v1/admin/roles`, `/api/v1/admin/permissions` |
 | Products | `/api/v1/admin/products` |
 | Categories | `/api/v1/admin/categories` |
 | Collections | `/api/v1/admin/collections` |
@@ -228,6 +234,22 @@ permission.
 | Audit log | `/api/v1/admin/audit-logs` |
 | Settings | `/api/v1/admin/settings` |
 
+### Moderator API
+
+Moderators use a dedicated, permission-scoped surface. Every route requires an
+active staff account and the permission listed in `src/common/constants/permissions.ts`.
+
+| Area | Prefix |
+| --- | --- |
+| Dashboard | `/api/v1/moderator/dashboard` |
+| Products | `/api/v1/moderator/products` |
+| Orders | `/api/v1/moderator/orders` |
+
+A moderator role never grants access to user management, roles, audit logs or
+store settings. Assigning administrator roles is restricted to a super
+administrator, and the last active administrator cannot be demoted or
+deactivated.
+
 ## Roles and permissions
 
 The seed creates:
@@ -239,6 +261,18 @@ The seed creates:
 | `product-manager` | Products, categories, collections, inventory, uploads |
 | `order-manager` | Orders, shipping, customer read access, inventory read |
 | `customer-support` | Orders and customer management without catalog access |
+
+The API exposes three account categories derived from staff membership:
+
+| API role | Meaning |
+| --- | --- |
+| `ADMIN` | User with an active `super-admin` or `admin` staff profile |
+| `MODERATOR` | User with any other active staff profile |
+| `CUSTOMER` | User with no staff profile |
+
+Customer registration always creates a `CUSTOMER`. Administrators create
+moderator accounts with `POST /api/v1/admin/moderators` and change roles with
+`PATCH /api/v1/admin/users/:id/role`.
 
 Permissions are defined in `src/common/constants/permissions.ts` and enforced by
 `PermissionsGuard`. The frontend is never trusted for roles or permissions.
@@ -281,15 +315,18 @@ must only change after a real, verified payment integration is added.
 
 ### Uploads
 
-- Admin-only Multer uploads to `UPLOAD_DIR`.
+- Admin-only Multer uploads.
 - MIME type allow-list plus magic-byte content validation.
 - Random UUID filenames; client filenames are never trusted.
 - Maximum size and file count limits.
 - Deletion validates the filename to prevent directory traversal.
-- Files are served read-only from `/uploads/`.
+- Local mode writes to `UPLOAD_DIR` and serves files read-only from `/uploads/`.
+- `UPLOAD_DRIVER=vercel-blob` sends images to Vercel Blob and returns the public
+  Blob URL instead.
 
-`UPLOAD_DIR` must point to persistent storage in production. Do not deploy with
-ephemeral disk if product images must survive restarts.
+`UPLOAD_DIR` must point to persistent storage in production. Vercel Functions
+have a read-only filesystem apart from the ephemeral `/tmp`, so durable uploads
+on Vercel require a connected Blob store and `UPLOAD_DRIVER=vercel-blob`.
 
 ## Scripts
 
@@ -297,6 +334,7 @@ ephemeral disk if product images must survive restarts.
 | --- | --- |
 | `pnpm start:dev` | Development server with watch mode |
 | `pnpm build` | Compile to `dist/` |
+| `pnpm vercel-build` | Generate Prisma Client and compile for Vercel |
 | `pnpm start:prod` | Run the compiled server |
 | `pnpm lint` | ESLint + Prettier checks |
 | `pnpm format` | Format source and tests |
@@ -326,19 +364,86 @@ does not mutate it.
 
 ## Production deployment
 
-1. Provision PostgreSQL and persistent disk storage.
+1. Provision PostgreSQL (with a pooled connection URL for serverless hosts).
 2. Set `NODE_ENV=production` and strong secrets.
-3. Run `pnpm install --frozen-lockfile && pnpm build`.
-4. Run `pnpm prisma:deploy` before starting the process.
+3. Run `pnpm install --frozen-lockfile && pnpm vercel-build` (or `pnpm build`).
+4. Apply migrations with `pnpm prisma:deploy` before the new version receives traffic.
 5. Run `pnpm db:seed` once (or manage roles/settings through the admin API).
-6. Start with `pnpm start:prod` behind HTTPS.
-7. Serve `/uploads` from the same persistent volume.
+6. Start with `pnpm start:prod` behind HTTPS, or deploy to Vercel as below.
+7. Serve `/uploads` from persistent storage, or use Vercel Blob.
 8. Monitor `/api/v1/health` and platform logs.
 9. Back up PostgreSQL and uploaded files regularly.
 
-Better Auth cookies are `httpOnly`, `sameSite=lax` and `secure` in production.
-Set `BETTER_AUTH_URL` and `FRONTEND_URL` to the public HTTPS URLs and add the
-storefront origin to `TRUSTED_ORIGINS`.
+Better Auth cookies are `httpOnly`, `secure` in production and `sameSite=lax`
+by default. Set `BETTER_AUTH_URL` and `FRONTEND_URL` to the public HTTPS URLs and
+add the storefront origin to `TRUSTED_ORIGINS`. If the frontend and API are on
+different sites (including two separate `*.vercel.app` domains), set
+`AUTH_COOKIE_SAME_SITE=none` so the browser sends the session cookie.
+
+### Vercel
+
+This repository is configured for Vercel's zero-configuration NestJS runtime:
+Vercel detects `src/main.ts`, turns the whole app into one Function, and routes
+every request through Nest. `vercel.json` runs `pnpm vercel-build`, which
+generates Prisma Client (with the Amazon Linux engine) before compiling.
+
+1. **Create the database.** Use Neon, Supabase, Vercel Postgres or another
+   managed PostgreSQL. Copy the **pooled** connection string. For Supabase add
+   `?pgbouncer=true&connection_limit=1`; for Neon use the `-pooler` host.
+2. **Import the project** at [vercel.com/new](https://vercel.com/new) or run
+   `pnpm dlx vercel` from the repository root. The framework is detected as
+   NestJS; keep the default build settings.
+3. **Add environment variables** in Project → Settings → Environment Variables.
+   Required for every environment:
+
+   ```env
+   NODE_ENV=production
+   DATABASE_URL=postgresql://...pooled...
+   BETTER_AUTH_SECRET=<openssl rand -hex 32>
+   BETTER_AUTH_URL=https://api.your-domain.com
+   FRONTEND_URL=https://www.your-domain.com
+   TRUSTED_ORIGINS=https://www.your-domain.com
+   AUTH_COOKIE_SAME_SITE=none   # only when frontend and API are different sites
+   ```
+
+   Optional: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`,
+   `EMAIL_FROM`, `MAX_FILE_SIZE`.
+4. **Create a Vercel Blob store** (Project → Storage → Blob) and connect it to
+   the project. Vercel injects `BLOB_READ_WRITE_TOKEN`; with the token present
+   the app automatically uses `UPLOAD_DRIVER=vercel-blob`, so product images
+   survive cold starts. Without Blob, uploads fall back to `/tmp` and are
+   temporary.
+5. **Apply migrations before the first request.** From a machine with the
+   production `DATABASE_URL`:
+
+   ```bash
+   DATABASE_URL="postgresql://...pooled..." pnpm prisma:deploy
+   DATABASE_URL="postgresql://...pooled..." pnpm db:seed   # first deploy only
+   ```
+
+   Keep migrations out of the build step so preview deployments cannot mutate
+   the production database unexpectedly.
+6. **Deploy** with `pnpm dlx vercel --prod`, or push to the connected Git
+   branch. Verify:
+
+   ```bash
+   curl https://api.your-domain.com/api/v1/health
+   ```
+
+   Better Auth endpoints live under `https://api.your-domain.com/api/auth/*`.
+
+Notes specific to serverless:
+
+- The in-memory Throttler and Better Auth rate limits apply per warm function
+  instance, not globally. For distributed limits, enforce them at the edge or in
+  the database.
+- Long-running background work, in-process cron jobs and persistent local files
+  are not available. Use Vercel Cron Jobs for scheduled HTTP endpoints.
+- Keep the function bundle below 250 MB. `prisma generate` only ships the
+  engines listed in `binaryTargets`.
+- Set the production domain (not a preview URL) as `BETTER_AUTH_URL`; previews
+  can use their own `VERCEL_URL` only when `BETTER_AUTH_URL` is unset.
+
 
 ## Project structure
 
@@ -360,11 +465,13 @@ src/
 ├── database/               # Prisma module/service
 ├── email/                  # Nodemailer service and templates
 ├── inventory/
+├── moderator/              # permission-scoped moderator API
 ├── newsletter/
 ├── orders/
 ├── products/
 ├── shipping/
 ├── uploads/
+├── users/                  # admin user, moderator and role management
 ├── wishlist/
 └── addresses/
 
