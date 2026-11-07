@@ -16,7 +16,7 @@ export interface SendEmailOptions {
 export class EmailService implements OnModuleInit {
   private readonly logger = new Logger(EmailService.name);
   private transporter?: Transporter;
-  private from = 'Tabark <no-reply@tabark.local>';
+  private from = 'tabarak <no-reply@tabarak.local>';
   private enabled = false;
 
   constructor(

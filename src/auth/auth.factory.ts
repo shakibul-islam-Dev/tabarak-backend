@@ -19,7 +19,7 @@ export function createAuth(prisma: PrismaService, config: ConfigService, email: 
   const cookieSameSite = config.get<'lax' | 'strict' | 'none'>('auth.cookieSameSite') ?? 'lax';
 
   return betterAuth({
-    appName: 'Tabarak',
+    appName: 'tabarak',
     baseURL: config.get<string>('auth.baseUrl'),
     basePath: '/api/auth',
     secret: config.get<string>('auth.secret'),

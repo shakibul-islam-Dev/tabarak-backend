@@ -28,7 +28,7 @@ export function emailLayout({ title, preheader, body }: LayoutOptions): string {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e7e5e4;">
             <tr>
               <td style="padding:24px 32px;border-bottom:1px solid #f0efee;">
-                <strong style="font-size:20px;letter-spacing:0.02em;">TABARK</strong>
+                <strong style="font-size:20px;letter-spacing:0.02em;">TABARAK</strong>
               </td>
             </tr>
             <tr>
@@ -39,7 +39,7 @@ export function emailLayout({ title, preheader, body }: LayoutOptions): string {
             </tr>
             <tr>
               <td style="padding:20px 32px;border-top:1px solid #f0efee;color:#78716c;font-size:12px;">
-                You received this email because of your account activity at Tabark.
+                You received this email because of your account activity at tabarak.
               </td>
             </tr>
           </table>
@@ -61,13 +61,13 @@ export function text(value: string): string {
 export const templates = {
   verification(name: string, url: string): { subject: string; html: string } {
     return {
-      subject: 'Verify your Tabark email address',
+      subject: 'Verify your tabarak email address',
       html: emailLayout({
         title: 'Verify your email',
-        preheader: 'Confirm your email address to activate your Tabark account.',
+        preheader: 'Confirm your email address to activate your tabarak account.',
         body:
           text(`Hi ${name || 'there'},`) +
-          text('Confirm your email address to finish creating your Tabark account.') +
+          text('Confirm your email address to finish creating your tabarak account.') +
           button(url, 'Verify email') +
           text('If you did not create this account, you can safely ignore this email.'),
       }),
@@ -75,13 +75,13 @@ export const templates = {
   },
   passwordReset(name: string, url: string): { subject: string; html: string } {
     return {
-      subject: 'Reset your Tabark password',
+      subject: 'Reset your tabarak password',
       html: emailLayout({
         title: 'Reset your password',
         preheader: 'Use the link below to choose a new password.',
         body:
           text(`Hi ${name || 'there'},`) +
-          text('We received a request to reset your Tabark password.') +
+          text('We received a request to reset your tabarak password.') +
           button(url, 'Reset password') +
           text('This link expires in one hour. If you did not request a reset, ignore this email.'),
       }),
@@ -89,20 +89,20 @@ export const templates = {
   },
   welcome(name: string): { subject: string; html: string } {
     return {
-      subject: 'Welcome to Tabark',
+      subject: 'Welcome to tabarak',
       html: emailLayout({
-        title: 'Welcome to Tabark',
-        preheader: 'Your Tabark account is ready.',
+        title: 'Welcome to tabarak',
+        preheader: 'Your tabarak account is ready.',
         body:
           text(`Hi ${name || 'there'},`) +
-          text('Thanks for joining Tabark. Explore our latest products and curated collections.') +
+          text('Thanks for joining tabarak. Explore our latest products and curated collections.') +
           button('/', 'Start shopping'),
       }),
     };
   },
   orderConfirmation(orderNumber: string, total: string): { subject: string; html: string } {
     return {
-      subject: `Tabark order ${orderNumber} confirmed`,
+      subject: `tabarak order ${orderNumber} confirmed`,
       html: emailLayout({
         title: 'We received your order',
         preheader: `Order ${orderNumber} has been received.`,
@@ -115,24 +115,24 @@ export const templates = {
   },
   orderStatusUpdate(orderNumber: string, status: string): { subject: string; html: string } {
     return {
-      subject: `Tabark order ${orderNumber} is now ${status.toLowerCase()}`,
+      subject: `tabarak order ${orderNumber} is now ${status.toLowerCase()}`,
       html: emailLayout({
         title: 'Order status updated',
         preheader: `Order ${orderNumber}: ${status}`,
         body:
           text(`Your order ${orderNumber} status changed to ${status}.`) +
-          text('Thank you for shopping with Tabark.'),
+          text('Thank you for shopping with tabarak.'),
       }),
     };
   },
   newsletterConfirmation(url: string): { subject: string; html: string } {
     return {
-      subject: 'Confirm your Tabark newsletter subscription',
+      subject: 'Confirm your tabarak newsletter subscription',
       html: emailLayout({
         title: 'Confirm your subscription',
-        preheader: 'One click to join the Tabark newsletter.',
+        preheader: 'One click to join the tabarak newsletter.',
         body:
-          text('Please confirm that you would like to receive Tabark news and offers.') +
+          text('Please confirm that you would like to receive tabarak news and offers.') +
           button(url, 'Confirm subscription'),
       }),
     };

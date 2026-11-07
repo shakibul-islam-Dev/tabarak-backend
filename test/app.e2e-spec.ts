@@ -7,7 +7,7 @@ import { AllExceptionsFilter } from '../src/common/filters/all-exceptions.filter
 import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor';
 import { validationExceptionFactory } from '../src/common/pipes/validation';
 
-describe('Tabarak API (e2e)', () => {
+describe('tabarak API (e2e)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {

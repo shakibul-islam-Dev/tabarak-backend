@@ -1,7 +1,7 @@
 {
   "name": "tabarak-backend",
   "version": "0.1.0",
-  "description": "Tabark e-commerce backend API",
+  "description": "tabarak e-commerce backend API",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {

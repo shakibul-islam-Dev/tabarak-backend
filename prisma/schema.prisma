@@ -1,4 +1,4 @@
-// Tabark e-commerce database schema
+// tabarak e-commerce database schema
 // Auth tables (User, Session, Account, Verification) follow Better Auth's core schema.
 // Run `pnpm prisma:generate` after every change.
 

@@ -1,5 +1,5 @@
 /**
- * Tabark database seed.
+ * tabarak database seed.
  *
  * Usage:
  *   pnpm prisma:migrate   # create the schema first
@@ -48,9 +48,9 @@ loadEnvFile();
 
 const prisma = new PrismaClient();
 
-const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? 'admin@tabark.local';
+const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? 'admin@tabarak.local';
 const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? 'ChangeMe123!';
-const ADMIN_NAME = process.env.SEED_ADMIN_NAME ?? 'Tabark Admin';
+const ADMIN_NAME = process.env.SEED_ADMIN_NAME ?? 'tabarak Admin';
 
 const PERMISSION_DESCRIPTIONS: Record<string, string> = {
   [PERMISSIONS.DASHBOARD_VIEW]: 'View the administration dashboard',
@@ -201,7 +201,7 @@ const COLLECTION_DEFINITIONS: Array<{
   {
     name: 'New Arrivals',
     slug: 'new-arrivals',
-    description: 'The latest additions to the Tabark wardrobe.',
+    description: 'The latest additions to the tabarak wardrobe.',
     isFeatured: true,
     sortOrder: 1,
     productSlugs: [
@@ -268,7 +268,7 @@ interface SeedProduct {
 }
 
 const image = (seed: string): string =>
-  `https://picsum.photos/seed/tabark-${seed}/900/1200`;
+  `https://picsum.photos/seed/tabarak-${seed}/900/1200`;
 
 const PRODUCT_DEFINITIONS: SeedProduct[] = [
   {
@@ -663,7 +663,7 @@ async function seedAdminUser(superAdminRoleId: string): Promise<void> {
     update: { roleId: superAdminRoleId, isActive: true },
     create: {
       userId: user.id,
-      firstName: 'Tabark',
+      firstName: 'tabarak',
       lastName: 'Admin',
       isActive: true,
       roleId: superAdminRoleId,
@@ -960,19 +960,19 @@ async function seedCoupons(): Promise<void> {
 
 async function seedSettings(): Promise<void> {
   const settings: Record<string, Prisma.InputJsonValue> = {
-    'site.name': 'Tabark',
+    'site.name': 'tabarak',
     'site.tagline': 'Considered essentials for everyday life',
     'site.description':
-      'Tabark is a modern minimalist label creating durable, quietly beautiful pieces.',
+      'tabarak is a modern minimalist label creating durable, quietly beautiful pieces.',
     'site.currency': 'USD',
-    'site.contactEmail': 'hello@tabark.local',
+    'site.contactEmail': 'hello@tabarak.local',
     'site.social': {
-      instagram: 'https://instagram.com/tabark',
-      pinterest: 'https://pinterest.com/tabark',
+      instagram: 'https://instagram.com/tabarak',
+      pinterest: 'https://pinterest.com/tabarak',
     },
     'shipping.freeShippingThreshold': 100,
     'shipping.defaultCountry': 'US',
-    'seo.defaultTitle': 'Tabark — Considered essentials',
+    'seo.defaultTitle': 'tabarak — Considered essentials',
     'seo.defaultDescription':
       'Modern minimalist clothing, accessories and objects for everyday life.',
   };
@@ -987,7 +987,7 @@ async function seedSettings(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  console.log('Seeding Tabark database...');
+  console.log('Seeding tabarak database...');
 
   const roles = await seedPermissionsAndRoles();
   const superAdminRoleId = roles.get('super-admin');

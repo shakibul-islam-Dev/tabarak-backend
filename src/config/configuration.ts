@@ -67,7 +67,7 @@ export default (): AppConfig => {
   // Vercel's only writable path is /tmp, and it is not shared between
   // instances. This fallback keeps local-disk mode usable for smoke tests,
   // but durable uploads on Vercel require UPLOAD_DRIVER=vercel-blob.
-  const defaultUploadDir = isVercel ? join(tmpdir(), 'tabark-uploads') : 'uploads';
+  const defaultUploadDir = isVercel ? join(tmpdir(), 'tabarak-uploads') : 'uploads';
 
   return {
     app: {
@@ -97,7 +97,7 @@ export default (): AppConfig => {
       secure: env.SMTP_SECURE === 'true',
       user: mailUser,
       pass: mailPass,
-      from: env.EMAIL_FROM ?? env.SMTP_FROM ?? 'Tabark <no-reply@tabark.local>',
+      from: env.EMAIL_FROM ?? env.SMTP_FROM ?? 'tabarak <no-reply@tabarak.local>',
       enabled: Boolean(mailHost && mailUser && mailPass),
     },
   };
